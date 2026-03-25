@@ -24,8 +24,8 @@ class RegisterRequest {
       'role_id': role_id,
       'first_name': first_name,
       'last_name': last_name,
-      'phone': phone,
-      'address': address,
+      'phone': null,
+      'address': null,
     };
   }
 }
