@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import 'register.dart';
+import 'forgot_password.dart';
 import 'home.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -163,21 +164,22 @@ class _LoginScreenState extends State<LoginScreen> {
                             },
                           ),
                           const SizedBox(height: 12),
-                          Center(
-                            child: TextButton(
-                              onPressed: () {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text('Funcionalidad en desarrollo'),
-                                  ),
-                                );
-                              },
-                              child: const Text(
-                                '¿Olvidaste tu contraseña?',
-                                style: TextStyle(color: Color.fromARGB(255, 9, 100, 175)),
-                              ),
+                        Center(
+                          child: TextButton(
+                          onPressed: () {
+                            Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                            builder: (context) => const ForgotPasswordScreen(),
                             ),
-                          ),
+                          );
+                        },
+                        child: const Text(
+                        '¿Olvidaste tu contraseña?',
+                        style: TextStyle(color: Colors.blue),
+                        ),
+                      ),
+                    ),
                           const SizedBox(height: 24),
                           Consumer<AuthProvider>(
                             builder: (context, authProvider, child) {

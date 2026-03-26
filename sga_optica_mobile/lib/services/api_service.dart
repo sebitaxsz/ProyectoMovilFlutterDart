@@ -75,4 +75,100 @@ class ApiService {
       throw Exception('Error de conexión: $e');
     }
   }
+
+  // Solicitar código de recuperación
+Future<Map<String, dynamic>> requestPasswordReset(String email) async {
+  try {
+    final response = await http.post(
+      Uri.parse('$baseUrl/auth/password/request-reset'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: jsonEncode({'correo': email}),
+    ).timeout(Constants.connectionTimeout);
+
+    print('=== REQUEST RESET CODE ===');
+    print('Response status: ${response.statusCode}');
+    print('Response body: ${response.body}');
+
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    } else {
+      final error = jsonDecode(response.body);
+      throw Exception(error['message'] ?? 'Error al solicitar el código');
+    }
+  } catch (e) {
+    print('Request reset error: $e');
+    throw Exception('Error de conexión: $e');
+  }
+}
+
+Future<Map<String, dynamic>> verifyResetCode(String email, String code) async {
+  try {
+    final response = await http.post(
+      Uri.parse('$baseUrl/auth/password/verify-code'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: jsonEncode({
+        'correo': email,
+        'code': code,
+      }),
+    ).timeout(Constants.connectionTimeout);
+
+    print('=== VERIFY RESET CODE ===');
+    print('Response status: ${response.statusCode}');
+    print('Response body: ${response.body}');
+
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    } else {
+      final error = jsonDecode(response.body);
+      throw Exception(error['message'] ?? 'Código incorrecto');
+    }
+  } catch (e) {
+    print('Verify code error: $e');
+    throw Exception('Error de conexión: $e');
+  }
+}
+
+// Restablecer contraseña
+Future<Map<String, dynamic>> resetPassword(
+  String email, 
+  String code, 
+  String newPassword, 
+  String confirmPassword
+) async {
+  try {
+    final response = await http.post(
+      Uri.parse('$baseUrl/auth/password/reset'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: jsonEncode({
+        'correo': email,
+        'code': code,
+        'nueva_contrasena': newPassword,
+        'confirmar_contrasena': confirmPassword,
+      }),
+    ).timeout(Constants.connectionTimeout);
+
+    print('=== RESET PASSWORD ===');
+    print('Response status: ${response.statusCode}');
+    print('Response body: ${response.body}');
+
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    } else {
+      final error = jsonDecode(response.body);
+      throw Exception(error['message'] ?? 'Error al restablecer la contraseña');
+    }
+  } catch (e) {
+    print('Reset password error: $e');
+    throw Exception('Error de conexión: $e');
+  }
+}
 }

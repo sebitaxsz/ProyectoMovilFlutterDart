@@ -102,4 +102,64 @@ class AuthProvider extends ChangeNotifier {
     _error = null;
     notifyListeners();
   }
+
+  Future<Map<String, dynamic>> requestPasswordReset(String email) async {
+  _isLoading = true;
+  _error = null;
+  notifyListeners();
+
+  try {
+    final response = await _apiService.requestPasswordReset(email);
+    _isLoading = false;
+    notifyListeners();
+    return response;
+  } catch (e) {
+    _error = e.toString();
+    _isLoading = false;
+    notifyListeners();
+    return {'ok': false, 'message': e.toString()};
+  }
+}
+
+// Verificar código de recuperación
+Future<Map<String, dynamic>> verifyResetCode(String email, String code) async {
+  _isLoading = true;
+  _error = null;
+  notifyListeners();
+
+  try {
+    final response = await _apiService.verifyResetCode(email, code);
+    _isLoading = false;
+    notifyListeners();
+    return response;
+  } catch (e) {
+    _error = e.toString();
+    _isLoading = false;
+    notifyListeners();
+    return {'ok': false, 'message': e.toString()};
+  }
+}
+
+Future<Map<String, dynamic>> resetPassword(
+  String email, 
+  String code, 
+  String newPassword, 
+  String confirmPassword
+) async {
+  _isLoading = true;
+  _error = null;
+  notifyListeners();
+
+  try {
+    final response = await _apiService.resetPassword(email, code, newPassword, confirmPassword);
+    _isLoading = false;
+    notifyListeners();
+    return response;
+  } catch (e) {
+    _error = e.toString();
+    _isLoading = false;
+    notifyListeners();
+    return {'ok': false, 'message': e.toString()};
+  }
+}
 }
