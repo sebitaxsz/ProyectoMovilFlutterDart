@@ -54,7 +54,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       final userData = {
         'user_user': _emailController.text.trim(),
         'user_password': _passwordController.text,
-        'role_id': 4,
+        'role_id': 2,
         'first_name': firstName,
         'last_name': lastName,
         'phone': _phoneController.text.trim().isEmpty ? null : _phoneController.text.trim(),
