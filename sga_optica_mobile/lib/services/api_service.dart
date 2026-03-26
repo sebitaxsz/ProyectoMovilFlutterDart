@@ -80,7 +80,7 @@ class ApiService {
 Future<Map<String, dynamic>> requestPasswordReset(String email) async {
   try {
     final response = await http.post(
-      Uri.parse('$baseUrl/auth/password/request-reset'),
+      Uri.parse('$baseUrl${Constants.requestResetEndpoint}'),
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
@@ -89,6 +89,7 @@ Future<Map<String, dynamic>> requestPasswordReset(String email) async {
     ).timeout(Constants.connectionTimeout);
 
     print('=== REQUEST RESET CODE ===');
+    print('URL: $baseUrl${Constants.requestResetEndpoint}');
     print('Response status: ${response.statusCode}');
     print('Response body: ${response.body}');
 
@@ -104,10 +105,11 @@ Future<Map<String, dynamic>> requestPasswordReset(String email) async {
   }
 }
 
+// Verificar código de recuperación
 Future<Map<String, dynamic>> verifyResetCode(String email, String code) async {
   try {
     final response = await http.post(
-      Uri.parse('$baseUrl/auth/password/verify-code'),
+      Uri.parse('$baseUrl${Constants.verifyCodeEndpoint}'),
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
@@ -119,6 +121,7 @@ Future<Map<String, dynamic>> verifyResetCode(String email, String code) async {
     ).timeout(Constants.connectionTimeout);
 
     print('=== VERIFY RESET CODE ===');
+    print('URL: $baseUrl${Constants.verifyCodeEndpoint}');
     print('Response status: ${response.statusCode}');
     print('Response body: ${response.body}');
 
@@ -143,7 +146,7 @@ Future<Map<String, dynamic>> resetPassword(
 ) async {
   try {
     final response = await http.post(
-      Uri.parse('$baseUrl/auth/password/reset'),
+      Uri.parse('$baseUrl${Constants.resetPasswordEndpoint}'),
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
@@ -157,6 +160,7 @@ Future<Map<String, dynamic>> resetPassword(
     ).timeout(Constants.connectionTimeout);
 
     print('=== RESET PASSWORD ===');
+    print('URL: $baseUrl${Constants.resetPasswordEndpoint}');
     print('Response status: ${response.statusCode}');
     print('Response body: ${response.body}');
 
