@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../models/user_model.dart';
+import '../models/product_model.dart'; // MODELO DE LA SECCION PRODUCTOS
 import '../utils/constants.dart';
 
 class ApiService {
@@ -77,102 +78,161 @@ class ApiService {
   }
 
   // Solicitar código de recuperación
-Future<Map<String, dynamic>> requestPasswordReset(String email) async {
-  try {
-    final response = await http.post(
-      Uri.parse('$baseUrl${Constants.requestResetEndpoint}'),
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-      },
-      body: jsonEncode({'correo': email}),
-    ).timeout(Constants.connectionTimeout);
+  Future<Map<String, dynamic>> requestPasswordReset(String email) async {
+    try {
+      final response = await http
+          .post(
+            Uri.parse('$baseUrl${Constants.requestResetEndpoint}'),
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+            },
+            body: jsonEncode({'correo': email}),
+          )
+          .timeout(Constants.connectionTimeout);
 
-    print('=== REQUEST RESET CODE ===');
-    print('URL: $baseUrl${Constants.requestResetEndpoint}');
-    print('Response status: ${response.statusCode}');
-    print('Response body: ${response.body}');
+      print('=== REQUEST RESET CODE ===');
+      print('URL: $baseUrl${Constants.requestResetEndpoint}');
+      print('Response status: ${response.statusCode}');
+      print('Response body: ${response.body}');
 
-    if (response.statusCode == 200) {
-      return jsonDecode(response.body);
-    } else {
-      final error = jsonDecode(response.body);
-      throw Exception(error['message'] ?? 'Error al solicitar el código');
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      } else {
+        final error = jsonDecode(response.body);
+        throw Exception(error['message'] ?? 'Error al solicitar el código');
+      }
+    } catch (e) {
+      print('Request reset error: $e');
+      throw Exception('Error de conexión: $e');
     }
-  } catch (e) {
-    print('Request reset error: $e');
-    throw Exception('Error de conexión: $e');
   }
-}
 
 // Verificar código de recuperación
-Future<Map<String, dynamic>> verifyResetCode(String email, String code) async {
-  try {
-    final response = await http.post(
-      Uri.parse('$baseUrl${Constants.verifyCodeEndpoint}'),
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-      },
-      body: jsonEncode({
-        'correo': email,
-        'code': code,
-      }),
-    ).timeout(Constants.connectionTimeout);
+  Future<Map<String, dynamic>> verifyResetCode(
+      String email, String code) async {
+    try {
+      final response = await http
+          .post(
+            Uri.parse('$baseUrl${Constants.verifyCodeEndpoint}'),
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+            },
+            body: jsonEncode({
+              'correo': email,
+              'code': code,
+            }),
+          )
+          .timeout(Constants.connectionTimeout);
 
-    print('=== VERIFY RESET CODE ===');
-    print('URL: $baseUrl${Constants.verifyCodeEndpoint}');
-    print('Response status: ${response.statusCode}');
-    print('Response body: ${response.body}');
+      print('=== VERIFY RESET CODE ===');
+      print('URL: $baseUrl${Constants.verifyCodeEndpoint}');
+      print('Response status: ${response.statusCode}');
+      print('Response body: ${response.body}');
 
-    if (response.statusCode == 200) {
-      return jsonDecode(response.body);
-    } else {
-      final error = jsonDecode(response.body);
-      throw Exception(error['message'] ?? 'Código incorrecto');
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      } else {
+        final error = jsonDecode(response.body);
+        throw Exception(error['message'] ?? 'Código incorrecto');
+      }
+    } catch (e) {
+      print('Verify code error: $e');
+      throw Exception('Error de conexión: $e');
     }
-  } catch (e) {
-    print('Verify code error: $e');
-    throw Exception('Error de conexión: $e');
   }
-}
 
 // Restablecer contraseña
-Future<Map<String, dynamic>> resetPassword(
-  String email, 
-  String code, 
-  String newPassword, 
-  String confirmPassword
-) async {
-  try {
-    final response = await http.post(
-      Uri.parse('$baseUrl${Constants.resetPasswordEndpoint}'),
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-      },
-      body: jsonEncode({
-        'correo': email,
-        'code': code,
-        'nueva_contrasena': newPassword,
-        'confirmar_contrasena': confirmPassword,
-      }),
-    ).timeout(Constants.connectionTimeout);
+  Future<Map<String, dynamic>> resetPassword(String email, String code,
+      String newPassword, String confirmPassword) async {
+    try {
+      final response = await http
+          .post(
+            Uri.parse('$baseUrl${Constants.resetPasswordEndpoint}'),
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+            },
+            body: jsonEncode({
+              'correo': email,
+              'code': code,
+              'nueva_contrasena': newPassword,
+              'confirmar_contrasena': confirmPassword,
+            }),
+          )
+          .timeout(Constants.connectionTimeout);
 
-    print('=== RESET PASSWORD ===');
-    print('URL: $baseUrl${Constants.resetPasswordEndpoint}');
-    print('Response status: ${response.statusCode}');
-    print('Response body: ${response.body}');
+      print('=== RESET PASSWORD ===');
+      print('URL: $baseUrl${Constants.resetPasswordEndpoint}');
+      print('Response status: ${response.statusCode}');
+      print('Response body: ${response.body}');
 
-    if (response.statusCode == 200) {
-      return jsonDecode(response.body);
-    } else {
-      final error = jsonDecode(response.body);
-      throw Exception(error['message'] ?? 'Error al restablecer la contraseña');
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      } else {
+        final error = jsonDecode(response.body);
+        throw Exception(
+            error['message'] ?? 'Error al restablecer la contraseña');
+      }
+    } catch (e) {
+      print('Reset password error: $e');
+      throw Exception('Error de conexión: $e');
     }
-  } catch (e) {
-    print('Reset password error: $e');
-    throw Exception('Error de conexión: $e');
   }
-}
+
+  // ========== MÉTODOS PARA PRODUCTOS ==========
+
+  // Obtener productos paginados
+  Future<ProductsPaginatedResponse> getProducts({int page = 1}) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl${Constants.productsEndpoint}?page=$page'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+      ).timeout(Constants.connectionTimeout);
+
+      print('=== GET PRODUCTS ===');
+      print('URL: $baseUrl${Constants.productsEndpoint}?page=$page');
+      print('Response status: ${response.statusCode}');
+
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> data = jsonDecode(response.body);
+        return ProductsPaginatedResponse.fromJson(data);
+      } else {
+        throw Exception('Error al cargar productos: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Get products error: $e');
+      throw Exception('Error de conexión: $e');
+    }
+  }
+
+  // Obtener un producto por ID
+  Future<Product> getProductById(int id) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl${Constants.productsEndpoint}/$id'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+      ).timeout(Constants.connectionTimeout);
+
+      print('=== GET PRODUCT BY ID ===');
+      print('URL: $baseUrl${Constants.productsEndpoint}/$id');
+      print('Response status: ${response.statusCode}');
+
+      if (response.statusCode == 200) {
+        return Product.fromJson(jsonDecode(response.body));
+      } else {
+        throw Exception('Error al cargar producto: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Get product by id error: $e');
+      throw Exception('Error de conexión: $e');
+    }
+  }
 }

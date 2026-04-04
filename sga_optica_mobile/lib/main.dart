@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'providers/auth_provider.dart';
+import 'providers/product_provider.dart';
 import 'views/login.dart';
 import 'views/register.dart';
+import 'views/main_screen.dart';  // 👈 AGREGAR IMPORT
 
 void main() {
   runApp(const MyApp());
@@ -16,6 +18,7 @@ class MyApp extends StatelessWidget {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => AuthProvider()),
+        ChangeNotifierProvider(create: (_) => ProductProvider()),
       ],
       child: MaterialApp(
         title: 'Sistema de Gestión Académica',
@@ -28,6 +31,7 @@ class MyApp extends StatelessWidget {
         home: const LoginScreen(),
         routes: {
           '/register': (context) => const RegisterScreen(),
+          '/main': (context) => const MainScreen(),  // 👈 AGREGAR RUTA
         },
       ),
     );

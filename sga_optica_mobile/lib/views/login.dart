@@ -28,19 +28,14 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _login() async {
     if (_formKey.currentState!.validate()) {
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
-      
+
       final success = await authProvider.login(
         _usernameController.text.trim(),
         _passwordController.text,
       );
 
       if (success && mounted) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (context) => HomeScreen(user: authProvider.currentUser),
-          ),
-        );
+        Navigator.pushReplacementNamed(context, '/main');
       } else if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -108,7 +103,8 @@ class _LoginScreenState extends State<LoginScreen> {
                               ),
                               border: OutlineInputBorder(),
                               focusedBorder: OutlineInputBorder(
-                                borderSide: BorderSide(color: Color.fromARGB(255, 9, 100, 175)),
+                                borderSide: BorderSide(
+                                    color: Color.fromARGB(255, 9, 100, 175)),
                               ),
                               contentPadding: EdgeInsets.symmetric(
                                 horizontal: 12,
@@ -136,7 +132,8 @@ class _LoginScreenState extends State<LoginScreen> {
                               ),
                               border: const OutlineInputBorder(),
                               focusedBorder: const OutlineInputBorder(
-                                borderSide: BorderSide(color: Color.fromARGB(255, 9, 100, 175)),
+                                borderSide: BorderSide(
+                                    color: Color.fromARGB(255, 9, 100, 175)),
                               ),
                               contentPadding: const EdgeInsets.symmetric(
                                 horizontal: 12,
@@ -164,30 +161,34 @@ class _LoginScreenState extends State<LoginScreen> {
                             },
                           ),
                           const SizedBox(height: 12),
-                        Center(
-                          child: TextButton(
-                          onPressed: () {
-                            Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                            builder: (context) => const ForgotPasswordScreen(),
+                          Center(
+                            child: TextButton(
+                              onPressed: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) =>
+                                        const ForgotPasswordScreen(),
+                                  ),
+                                );
+                              },
+                              child: const Text(
+                                '¿Olvidaste tu contraseña?',
+                                style: TextStyle(color: Colors.blue),
+                              ),
                             ),
-                          );
-                        },
-                        child: const Text(
-                        '¿Olvidaste tu contraseña?',
-                        style: TextStyle(color: Colors.blue),
-                        ),
-                      ),
-                    ),
+                          ),
                           const SizedBox(height: 24),
                           Consumer<AuthProvider>(
                             builder: (context, authProvider, child) {
                               return ElevatedButton(
-                                onPressed: authProvider.isLoading ? null : _login,
+                                onPressed:
+                                    authProvider.isLoading ? null : _login,
                                 style: ElevatedButton.styleFrom(
-                                  padding: const EdgeInsets.symmetric(vertical: 14),
-                                  backgroundColor: Color.fromARGB(255, 9, 100, 175),
+                                  padding:
+                                      const EdgeInsets.symmetric(vertical: 14),
+                                  backgroundColor:
+                                      Color.fromARGB(255, 9, 100, 175),
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(8),
                                   ),
@@ -198,7 +199,8 @@ class _LoginScreenState extends State<LoginScreen> {
                                         width: 20,
                                         child: CircularProgressIndicator(
                                           strokeWidth: 2,
-                                          valueColor: AlwaysStoppedAnimation<Color>(
+                                          valueColor:
+                                              AlwaysStoppedAnimation<Color>(
                                             Colors.white,
                                           ),
                                         ),
@@ -227,7 +229,8 @@ class _LoginScreenState extends State<LoginScreen> {
                                   Navigator.push(
                                     context,
                                     MaterialPageRoute(
-                                      builder: (context) => const RegisterScreen(),
+                                      builder: (context) =>
+                                          const RegisterScreen(),
                                     ),
                                   );
                                 },
