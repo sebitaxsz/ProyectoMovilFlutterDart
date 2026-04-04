@@ -47,14 +47,16 @@ class MainScreenState extends State<MainScreen> {
         foregroundColor: Colors.white,
         elevation: 0,
         automaticallyImplyLeading: false,
+        centerTitle: true,  // CENTRAR TITULOS
       ),
       body: _screens[_selectedIndex],
       bottomNavigationBar: BottomNavigationBar(
         type: BottomNavigationBarType.fixed,
         currentIndex: _selectedIndex,
         onTap: onItemTapped,
-        selectedItemColor: Colors.blue,
-        unselectedItemColor: Colors.grey,
+        selectedItemColor: const Color.fromARGB(255, 19, 16, 214),
+        unselectedItemColor: const Color.fromARGB(255, 255, 254, 254),
+        backgroundColor: Colors.blue,
         items: const [
           BottomNavigationBarItem(
             icon: Icon(Icons.home),
