@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../models/product_model.dart';
+import '../providers/cart_provider.dart';
 import '../utils/constants.dart';
 
 class ProductCard extends StatelessWidget {
@@ -8,11 +10,11 @@ class ProductCard extends StatelessWidget {
   final VoidCallback onAddToCart;
 
   const ProductCard({
-    Key? key,
+    super.key,
     required this.product,
     required this.onTap,
     required this.onAddToCart,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -58,7 +60,8 @@ class ProductCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 2),
                   // Descripción
-                  if (product.description != null && product.description!.isNotEmpty)
+                  if (product.description != null &&
+                      product.description!.isNotEmpty)
                     Text(
                       product.description!,
                       style: const TextStyle(
@@ -95,14 +98,22 @@ class ProductCard extends StatelessWidget {
                     style: const TextStyle(fontSize: 9, color: Colors.grey),
                   ),
                   const SizedBox(height: 6),
-                  // Botón
+                  // Botón Agregar — ahora agrega al CartProvider
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
-                      onPressed: onAddToCart,
+                      onPressed: product.stock > 0
+                          ? () {
+                              // Agregar al carrito global
+                              Provider.of<CartProvider>(context, listen: false)
+                                  .addProduct(product);
+                              // Callback original para el snackbar
+                              onAddToCart();
+                            }
+                          : null,
                       style: ElevatedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 6),
-                        backgroundColor: Colors.blue,
+                        backgroundColor: const Color(0xFF0964AF),
                         foregroundColor: Colors.white,
                         textStyle: const TextStyle(fontSize: 10),
                         minimumSize: const Size(0, 28),

@@ -3,7 +3,6 @@ import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import 'register.dart';
 import 'forgot_password.dart';
-import 'home.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -54,7 +53,7 @@ class _LoginScreenState extends State<LoginScreen> {
         children: [
           Container(
             height: MediaQuery.of(context).size.height * 0.45,
-            color: Color.fromARGB(255, 9, 100, 175),
+            color: const Color.fromARGB(255, 9, 100, 175),
           ),
           Center(
             child: SingleChildScrollView(
@@ -188,7 +187,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                   padding:
                                       const EdgeInsets.symmetric(vertical: 14),
                                   backgroundColor:
-                                      Color.fromARGB(255, 9, 100, 175),
+                                      const Color.fromARGB(255, 9, 100, 175),
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(8),
                                   ),

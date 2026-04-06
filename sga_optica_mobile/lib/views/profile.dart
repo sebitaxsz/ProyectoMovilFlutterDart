@@ -3,7 +3,7 @@ import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 
 class ProfileScreen extends StatelessWidget {
-  const ProfileScreen({Key? key}) : super(key: key);
+  const ProfileScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -15,7 +15,7 @@ class ProfileScreen extends StatelessWidget {
     if (user?.entity?.first_name != null && user?.entity?.first_name!.isNotEmpty == true) {
       displayName = user!.entity!.first_name!;
       if (user.entity?.last_name != null && user.entity!.last_name!.isNotEmpty == true) {
-        displayName = '${displayName} ${user.entity!.last_name}';
+        displayName = '$displayName ${user.entity!.last_name}';
       }
     } else if (user?.username != null) {
       displayName = user!.username;
