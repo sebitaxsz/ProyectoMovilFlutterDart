@@ -16,14 +16,14 @@ const Color _kTextGrey    = Color(0xFF7A8A99);
 // ─────────────────────────────────────────────
 //  Categorías de filtro
 // ─────────────────────────────────────────────
-const List<String> _filterLabels = ['Todos', 'Lentes', 'Monturas', 'Accesorios'];
+const List<String> _filterLabels = ['Todos', 'Lentes', 'Lentes de contacto', 'Accesorios'];
 
 // Palabras clave para filtrar por nombre de categoría de la API
 const Map<String, List<String>> _filterKeywords = {
-  'Lentes':    ['lente', 'lens', 'lentes', 'oftálmico', 'oftalmico', 'solar', 'sol'],
-  'Monturas':  ['montura', 'armazón', 'armazon', 'frame', 'armadura'],
-  'Accesorios':['accesorio', 'paño', 'liquido', 'líquido', 'estuche', 'case',
-                'limpia', 'microf', 'cleaning', 'mry', 'mx2', 'ray-ban', 'rayban'],
+  'Lentes':    ['lente', 'lens', 'lentes', 'oftálmico', 'oftalmico', 'solar', 'sol', 'gafas'],
+  'Lentes de contacto':  ['lentillas', 'contacto'],
+  'Paños,Soluciones,Estuches':['accesorio', 'paño', 'liquido', 'líquido', 'estuche', 'case',
+                'limpia', 'microf', 'cleaning', 'mry', 'mx2', 'ray-ban', 'rayban', 'estuche', 'estuches'],
 };
 
 class ProductosScreen extends StatefulWidget {
