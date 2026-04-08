@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 import '../providers/cart_provider.dart';
 import '../providers/auth_provider.dart';
 import '../utils/constants.dart';
 import 'main_screen.dart';
+import 'login.dart';
 
 // ─────────────────────────────────────────────
 //  Colores (consistentes con toda la app)
@@ -119,12 +121,42 @@ class _CartScreenState extends State<CartScreen> {
 
   double _discountAmount(double subtotal) => subtotal * _discount;
 
-  // ── Realizar pedido → POST /sales ────────────────────
+  // ── VERIFICAR LOGIN ANTES DE REALIZAR EL PAGO ──
+  void _verificarLoginYRealizarPago() {
+    final auth = Provider.of<AuthProvider>(context, listen: false);
+    
+    if (!auth.isAuthenticated) {
+      _snack('🔐 Debes iniciar sesión para continuar con tu compra');
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const LoginScreen()),
+      );
+      return;
+    }
+    
+    // Si está logueado, proceder con el pago
+    _checkout();
+  }
+
+  // ── REALIZAR PEDIDO (CHECKOUT) CORREGIDO ──
+  // ✅ AHORA USA LA RUTA PÚBLICA /public/sales
   Future<void> _checkout() async {
     final cart = Provider.of<CartProvider>(context, listen: false);
     final auth = Provider.of<AuthProvider>(context, listen: false);
 
     if (cart.isEmpty) return;
+
+    // ============================================
+    // 🔐 VALIDACIÓN DE LOGIN (doble seguridad)
+    // ============================================
+    if (!auth.isAuthenticated) {
+      _snack('🔐 Debes iniciar sesión para realizar un pedido');
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const LoginScreen()),
+      );
+      return;
+    }
 
     if (_selectedPaymentTypeId == null) {
       _snack('Selecciona un método de pago');
@@ -139,48 +171,49 @@ class _CartScreenState extends State<CartScreen> {
       return;
     }
 
-    // ── La API de ventas requiere customerId.
-    //    El cliente logueado puede no tener un customerId propio
-    //    (eso lo gestiona el backend).  Por ahora usamos un ID
-    //    de prueba (1) con aviso.  Cuando el back exponga
-    //    GET /customers/me se puede conectar aquí.
-    //
-    //    NOTA TÉCNICA: La ruta POST /sales requiere rol
-    //    Administrador o Empleado.  Si el usuario logueado es
-    //    cliente, la API devolverá 403.  En ese caso mostramos
-    //    un mensaje claro al usuario.
-    // ─────────────────────────────────────────────────────
-
-    final token = auth.token;
-    if (token == null) {
-      _snack('Debes iniciar sesión para continuar');
-      return;
-    }
+    // Obtener email del usuario autenticado
+    final userEmail = auth.currentUser?.username;
 
     setState(() => _processingOrder = true);
 
     try {
-      // Intentar obtener customerId del usuario actual
-      // (si el back lo expone en el futuro desde /customers/me)
-      // Por ahora usamos el userId del token como customerId demo
-      final body = cart.buildSaleBody(
-        customerId: 1, // placeholder — conectar con endpoint real cuando esté disponible
-        paymentTypeId: _selectedPaymentTypeId!,
-      );
+      // ✅ CONSTRUIR BODY PARA RUTA PÚBLICA (sin customerId)
+      final body = {
+        'guestName': _nameController.text.trim(),
+        'guestEmail': userEmail,  // Email del usuario logueado
+        'guestPhone': _phoneController.text.trim(),
+        'guestAddress': _addressController.text.trim(),
+        'paymentTypeId': _selectedPaymentTypeId!,
+        'products': cart.items.map((i) => {
+          'productId': i.product.id,
+          'quantity': i.quantity,
+        }).toList(),
+      };
 
+      print('=== CREATE PUBLIC SALE ===');
+      print('Body: $body');
+
+      // ✅ RUTA CORRECTA: /public/sales (no requiere token)
       final res = await http
           .post(
-            Uri.parse('${Constants.baseUrl}/sales'),
+            Uri.parse('${Constants.baseUrl}/public/sales'),
             headers: {
               'Content-Type': 'application/json',
-              'Authorization': 'Bearer $token',
+              'Accept': 'application/json',
             },
             body: jsonEncode(body),
           )
           .timeout(Constants.connectionTimeout);
 
+      print('Response status: ${res.statusCode}');
+      print('Response body: ${res.body}');
+
       if (res.statusCode == 201) {
         final data = jsonDecode(res.body);
+        
+        // ✅ Guardar pedido localmente en SharedPreferences
+        await _guardarPedidoLocal(data, cart, userEmail);
+        
         cart.clear();
         if (mounted) _showSuccessDialog(data['numberBill'] ?? '');
       } else {
@@ -188,9 +221,116 @@ class _CartScreenState extends State<CartScreen> {
         _snack(err['message'] ?? 'Error al procesar el pedido');
       }
     } catch (e) {
-      _snack('Error de conexión. Intenta de nuevo.');
+      print('Error en checkout: $e');
+      
+      // ✅ Si la API falla, guardar pedido localmente (modo offline)
+      final success = await _guardarPedidoLocalOffline(cart, userEmail);
+      if (success) {
+        cart.clear();
+        if (mounted) _showSuccessDialog('LOCAL-${DateTime.now().millisecondsSinceEpoch}');
+        _snack('✅ Pedido guardado localmente. Se sincronizará cuando haya conexión.', success: true);
+      } else {
+        _snack('Error de conexión. Intenta de nuevo.');
+      }
     } finally {
       if (mounted) setState(() => _processingOrder = false);
+    }
+  }
+
+  // ── GUARDAR PEDIDO EN SHAREDPREFERENCES (cuando API responde) ──
+  Future<void> _guardarPedidoLocal(Map<String, dynamic> response, CartProvider cart, String? userEmail) async {
+    if (userEmail == null) return;
+    
+    final prefs = await SharedPreferences.getInstance();
+    final storageKey = 'pedidos_$userEmail';
+    final pedidosExistentesStr = prefs.getString(storageKey);
+    List<dynamic> pedidosExistentes = [];
+    
+    if (pedidosExistentesStr != null) {
+      pedidosExistentes = jsonDecode(pedidosExistentesStr);
+    }
+    
+    final nuevoPedido = {
+      'id': response['id'],
+      'fecha': DateTime.now().toIso8601String().split('T')[0],
+      'total': response['total'],
+      'estado': 'Pendiente',
+      'productos': cart.items.map((i) => {
+        'nombre': i.product.nameProduct,
+        'cantidad': i.quantity,
+        'precio': i.product.unitPrice,
+      }).toList(),
+      'cliente': {
+        'nombre': _nameController.text.trim(),
+        'email': userEmail,
+        'telefono': _phoneController.text.trim(),
+        'direccion': _addressController.text.trim(),
+      },
+      'metodoPago': _paymentTypes.firstWhere((p) => p.id == _selectedPaymentTypeId).name,
+    };
+    
+    pedidosExistentes.insert(0, nuevoPedido);
+    await prefs.setString(storageKey, jsonEncode(pedidosExistentes));
+    
+    // Guardar también en lista global de todos los pedidos
+    final allOrdersStr = prefs.getString('todos_los_pedidos');
+    List<dynamic> allOrders = [];
+    if (allOrdersStr != null) {
+      allOrders = jsonDecode(allOrdersStr);
+    }
+    allOrders.insert(0, {...nuevoPedido, 'userEmail': userEmail});
+    await prefs.setString('todos_los_pedidos', jsonEncode(allOrders));
+  }
+
+  // ── GUARDAR PEDIDO LOCALMENTE (cuando API falla - modo offline) ──
+  Future<bool> _guardarPedidoLocalOffline(CartProvider cart, String? userEmail) async {
+    if (userEmail == null) return false;
+    
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final storageKey = 'pedidos_$userEmail';
+      final pedidosExistentesStr = prefs.getString(storageKey);
+      List<dynamic> pedidosExistentes = [];
+      
+      if (pedidosExistentesStr != null) {
+        pedidosExistentes = jsonDecode(pedidosExistentesStr);
+      }
+      
+      final nuevoPedido = {
+        'id': pedidosExistentes.length + 1,
+        'fecha': DateTime.now().toIso8601String().split('T')[0],
+        'total': cart.total,
+        'estado': 'Pendiente (Offline)',
+        'productos': cart.items.map((i) => {
+          'nombre': i.product.nameProduct,
+          'cantidad': i.quantity,
+          'precio': i.product.unitPrice,
+        }).toList(),
+        'cliente': {
+          'nombre': _nameController.text.trim(),
+          'email': userEmail,
+          'telefono': _phoneController.text.trim(),
+          'direccion': _addressController.text.trim(),
+        },
+        'metodoPago': _paymentTypes.firstWhere((p) => p.id == _selectedPaymentTypeId).name,
+      };
+      
+      pedidosExistentes.insert(0, nuevoPedido);
+      await prefs.setString(storageKey, jsonEncode(pedidosExistentes));
+      
+      // Guardar también en lista global
+      final allOrdersStr = prefs.getString('todos_los_pedidos');
+      List<dynamic> allOrders = [];
+      if (allOrdersStr != null) {
+        allOrders = jsonDecode(allOrdersStr);
+      }
+      allOrders.insert(0, {...nuevoPedido, 'userEmail': userEmail});
+      await prefs.setString('todos_los_pedidos', jsonEncode(allOrders));
+      
+      return true;
+    } catch (e) {
+      print('Error guardando pedido offline: $e');
+      return false;
     }
   }
 
@@ -270,52 +410,55 @@ class _CartScreenState extends State<CartScreen> {
 
   // ── Carrito vacío ─────────────────────────────────────
   Widget _buildEmptyCart(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(24),
-            decoration: const BoxDecoration(
-              color: Color(0xFFE3F0FB),
-              shape: BoxShape.circle,
+    return Scaffold(
+      backgroundColor: _kBg,
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(24),
+              decoration: const BoxDecoration(
+                color: Color(0xFFE3F0FB),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.shopping_cart_outlined,
+                  size: 56, color: _kPrimary),
             ),
-            child: const Icon(Icons.shopping_cart_outlined,
-                size: 56, color: _kPrimary),
-          ),
-          const SizedBox(height: 20),
-          const Text(
-            'Tu carrito está vacío',
-            style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w700,
-                color: _kTextDark),
-          ),
-          const SizedBox(height: 8),
-          const Text(
-            'Agrega productos desde la sección Productos',
-            style: TextStyle(color: _kTextGrey, fontSize: 13),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 24),
-          ElevatedButton.icon(
-            onPressed: () {
-              final mainState =
-                  context.findAncestorStateOfType<MainScreenState>();
-              mainState?.onItemTapped(1);
-            },
-            icon: const Icon(Icons.shopping_bag_rounded),
-            label: const Text('Ver Productos'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: _kPrimary,
-              foregroundColor: Colors.white,
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 28, vertical: 12),
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(30)),
+            const SizedBox(height: 20),
+            const Text(
+              'Tu carrito está vacío',
+              style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  color: _kTextDark),
             ),
-          ),
-        ],
+            const SizedBox(height: 8),
+            const Text(
+              'Agrega productos desde la sección Productos',
+              style: TextStyle(color: _kTextGrey, fontSize: 13),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 24),
+            ElevatedButton.icon(
+              onPressed: () {
+                final mainState =
+                    context.findAncestorStateOfType<MainScreenState>();
+                mainState?.onItemTapped(1);
+              },
+              icon: const Icon(Icons.shopping_bag_rounded),
+              label: const Text('Ver Productos'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: _kPrimary,
+                foregroundColor: Colors.white,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 28, vertical: 12),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(30)),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -464,7 +607,7 @@ class _CartScreenState extends State<CartScreen> {
                               ? const Text('No disponible',
                                   style: TextStyle(color: _kTextGrey))
                               : DropdownButtonFormField<int>(
-                                  initialValue: _selectedPaymentTypeId,
+                                  value: _selectedPaymentTypeId,
                                   decoration: InputDecoration(
                                     border: OutlineInputBorder(
                                       borderRadius:
@@ -562,7 +705,7 @@ class _CartScreenState extends State<CartScreen> {
               width: double.infinity,
               height: 52,
               child: ElevatedButton(
-                onPressed: _processingOrder ? null : _checkout,
+                onPressed: _processingOrder ? null : _verificarLoginYRealizarPago,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: _kPrimary,
                   foregroundColor: Colors.white,

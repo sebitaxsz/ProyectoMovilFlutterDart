@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
+import 'orders_screen.dart';  // ✅ Importar OrdersScreen
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -74,12 +75,14 @@ class ProfileScreen extends StatelessWidget {
               subtitle: Text(user.entity!.address!),
             ),
           const Divider(),
+          // ✅ MIS PEDIDOS - Ahora navega a OrdersScreen
           ListTile(
             leading: const Icon(Icons.history),
             title: const Text('Mis Pedidos'),
             onTap: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Próximamente')),
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const OrdersScreen()),
               );
             },
           ),
