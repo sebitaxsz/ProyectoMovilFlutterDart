@@ -22,8 +22,8 @@ const List<String> _filterLabels = ['Todos', 'Lentes', 'Lentes de contacto', 'Ac
 const Map<String, List<String>> _filterKeywords = {
   'Lentes':    ['lente', 'lens', 'lentes', 'oftálmico', 'oftalmico', 'solar', 'sol', 'gafas'],
   'Lentes de contacto':  ['lentillas', 'contacto'],
-  'Paños,Soluciones,Estuches':['accesorio', 'paño', 'liquido', 'líquido', 'estuche', 'case',
-                'limpia', 'microf', 'cleaning', 'mry', 'mx2', 'ray-ban', 'rayban', 'estuche', 'estuches'],
+  'Accesorios':['Accesorios', 'paño', 'liquido', 'líquido', 'estuche', 'case',
+                'limpia', 'microf', 'cleaning', 'estuche', 'estuches'],
 };
 
 class ProductosScreen extends StatefulWidget {
