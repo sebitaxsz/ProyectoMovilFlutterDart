@@ -25,10 +25,9 @@ class AuthProvider extends ChangeNotifier {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('auth_token');
     final userJson = prefs.getString('user_data');
-
     if (token != null && userJson != null) {
       try {
-        final Map<String, dynamic> userData = jsonDecode(userJson);
+        final userData = jsonDecode(userJson) as Map<String, dynamic>;
         _token = token;
         _currentUser = User.fromJson({'token': token, 'user': userData});
         notifyListeners();
@@ -53,7 +52,6 @@ class AuthProvider extends ChangeNotifier {
     _isLoading = true;
     _error = null;
     notifyListeners();
-
     try {
       final user = await _apiService.login(username, password);
       _currentUser = user;
@@ -63,7 +61,7 @@ class AuthProvider extends ChangeNotifier {
       notifyListeners();
       return true;
     } catch (e) {
-      _error = e.toString();
+      _error = e.toString().replaceAll('Exception: ', '');
       _isLoading = false;
       notifyListeners();
       return false;
@@ -74,14 +72,13 @@ class AuthProvider extends ChangeNotifier {
     _isLoading = true;
     _error = null;
     notifyListeners();
-
     try {
       await _apiService.register(userData);
       _isLoading = false;
       notifyListeners();
       return true;
     } catch (e) {
-      _error = e.toString();
+      _error = e.toString().replaceAll('Exception: ', '');
       _isLoading = false;
       notifyListeners();
       return false;
@@ -103,11 +100,13 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Actualiza el perfil del cliente autenticado.
-  /// Llama a PUT /api/v1/customer/profile/me (no requiere ser admin).
-  /// Recibe la respuesta del servidor y reconstruye currentUser en memoria
-  /// y en SharedPreferences para que la pantalla de perfil refleje los cambios
-  /// sin necesidad de hacer logout/login.
+  // ─── ACTUALIZAR PERFIL DEL CLIENTE ─────────────────────────────────────────
+  //
+  // 1. Llama a PUT /api/v1/customer/profile con el token del usuario.
+  // 2. Con la respuesta del servidor reconstruye currentUser en memoria.
+  // 3. Persiste los datos actualizados en SharedPreferences.
+  // 4. Notifica a los widgets para que re-rendericen con los datos nuevos.
+  // ──────────────────────────────────────────────────────────────────────────
   Future<bool> updateProfile(Map<String, dynamic> data) async {
     _isLoading = true;
     _error = null;
@@ -117,10 +116,10 @@ class AuthProvider extends ChangeNotifier {
       final result = await _apiService.updateCustomerProfile(_token!, data);
 
       // El servidor devuelve { message, customer: {...}, entity: {...} }
-      final customerData = result['customer'] as Map<String, dynamic>? ?? {};
-      final entityData   = result['entity']   as Map<String, dynamic>? ?? {};
+      final customerData = (result['customer'] as Map<String, dynamic>?) ?? {};
+      final entityData   = (result['entity']   as Map<String, dynamic>?) ?? {};
 
-      // Reconstruir UserEntity con los datos frescos del servidor
+      // Reconstruir UserEntity con datos frescos del servidor
       final updatedEntity = UserEntity(
         id:             _currentUser?.entity?.id ?? 0,
         userId:         _currentUser?.userId ?? '',
@@ -132,7 +131,6 @@ class AuthProvider extends ChangeNotifier {
         secondLastName: customerData['secondLastName']  ?? _currentUser?.entity?.secondLastName,
       );
 
-      // El email también se usa como username
       final updatedUsername = customerData['email'] ?? _currentUser?.username ?? '';
 
       _currentUser = User(
@@ -144,12 +142,11 @@ class AuthProvider extends ChangeNotifier {
       );
 
       await _saveUser(_currentUser!);
-
       _isLoading = false;
       notifyListeners();
       return true;
     } catch (e) {
-      _error = e.toString();
+      _error = e.toString().replaceAll('Exception: ', '');
       _isLoading = false;
       notifyListeners();
       return false;
@@ -160,17 +157,16 @@ class AuthProvider extends ChangeNotifier {
     _isLoading = true;
     _error = null;
     notifyListeners();
-
     try {
       final response = await _apiService.requestPasswordReset(email);
       _isLoading = false;
       notifyListeners();
       return response;
     } catch (e) {
-      _error = e.toString();
+      _error = e.toString().replaceAll('Exception: ', '');
       _isLoading = false;
       notifyListeners();
-      return {'ok': false, 'message': e.toString()};
+      return {'ok': false, 'message': _error};
     }
   }
 
@@ -178,41 +174,34 @@ class AuthProvider extends ChangeNotifier {
     _isLoading = true;
     _error = null;
     notifyListeners();
-
     try {
       final response = await _apiService.verifyResetCode(email, code);
       _isLoading = false;
       notifyListeners();
       return response;
     } catch (e) {
-      _error = e.toString();
+      _error = e.toString().replaceAll('Exception: ', '');
       _isLoading = false;
       notifyListeners();
-      return {'ok': false, 'message': e.toString()};
+      return {'ok': false, 'message': _error};
     }
   }
 
   Future<Map<String, dynamic>> resetPassword(
-    String email,
-    String code,
-    String newPassword,
-    String confirmPassword,
-  ) async {
+      String email, String code, String newPassword, String confirmPassword) async {
     _isLoading = true;
     _error = null;
     notifyListeners();
-
     try {
-      final response = await _apiService.resetPassword(
-          email, code, newPassword, confirmPassword);
+      final response = await _apiService.resetPassword(email, code, newPassword, confirmPassword);
       _isLoading = false;
       notifyListeners();
       return response;
     } catch (e) {
-      _error = e.toString();
+      _error = e.toString().replaceAll('Exception: ', '');
       _isLoading = false;
       notifyListeners();
-      return {'ok': false, 'message': e.toString()};
+      return {'ok': false, 'message': _error};
     }
   }
 }

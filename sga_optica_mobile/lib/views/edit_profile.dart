@@ -12,30 +12,30 @@ class EditProfileScreen extends StatefulWidget {
 class _EditProfileScreenState extends State<EditProfileScreen> {
   final _formKey = GlobalKey<FormState>();
 
-  // Campos tabla Customer
-  final _firstNameCtrl        = TextEditingController();
-  final _secondNameCtrl       = TextEditingController();
-  final _firstLastNameCtrl    = TextEditingController();
-  final _secondLastNameCtrl   = TextEditingController();
-  final _phoneNumberCtrl      = TextEditingController();
-  final _emailCtrl            = TextEditingController();
+  // ── Campos tabla Customer ──────────────────────────
+  final _firstNameCtrl      = TextEditingController();
+  final _secondNameCtrl     = TextEditingController();
+  final _firstLastNameCtrl  = TextEditingController();
+  final _secondLastNameCtrl = TextEditingController();
+  final _phoneNumberCtrl    = TextEditingController();
+  final _emailCtrl          = TextEditingController();
 
-  // Campo tabla UserEntity
-  final _addressCtrl          = TextEditingController();
+  // ── Campo tabla UserEntity ─────────────────────────
+  final _addressCtrl        = TextEditingController();
 
-  // Cambio de contraseña
+  // ── Cambio de contraseña ───────────────────────────
   final _currentPasswordCtrl  = TextEditingController();
   final _newPasswordCtrl      = TextEditingController();
   final _confirmPasswordCtrl  = TextEditingController();
 
-  bool _isLoading        = false;
-  bool _showPassword     = false;
-  bool _changePassword   = false; // El usuario activa este bloque cuando quiere cambiar la clave
+  bool _isLoading      = false;
+  bool _showPasswords  = false;
+  bool _changePassword = false;
 
   @override
   void initState() {
     super.initState();
-    final user = context.read<AuthProvider>().currentUser;
+    final user   = context.read<AuthProvider>().currentUser;
     final entity = user?.entity;
 
     _firstNameCtrl.text      = entity?.first_name      ?? '';
@@ -62,14 +62,13 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     super.dispose();
   }
 
-  Future<void> _saveChanges() async {
+  Future<void> _guardarCambios() async {
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _isLoading = true);
-
     final auth = context.read<AuthProvider>();
 
-    // Construir el payload con todos los campos de Customer + UserEntity
+    // Payload que coincide EXACTAMENTE con lo que espera el backend
     final data = <String, dynamic>{
       'firstName':      _firstNameCtrl.text.trim(),
       'secondName':     _secondNameCtrl.text.trim(),
@@ -80,10 +79,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       'address':        _addressCtrl.text.trim(),
     };
 
-    // Añadir campos de contraseña solo si el usuario quiere cambiarla
+    // Añadir campos de contraseña solo si el usuario activó el cambio
     if (_changePassword && _newPasswordCtrl.text.isNotEmpty) {
-      data['currentPassword']  = _currentPasswordCtrl.text;
-      data['newPassword']      = _newPasswordCtrl.text;
+      data['currentPassword']    = _currentPasswordCtrl.text;
+      data['newPassword']        = _newPasswordCtrl.text;
       data['confirmNewPassword'] = _confirmPasswordCtrl.text;
     }
 
@@ -95,26 +94,26 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     if (success) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Perfil actualizado correctamente'),
+          content: Text('✅ Perfil actualizado correctamente'),
           backgroundColor: Colors.green,
         ),
       );
       Navigator.pop(context);
     } else {
-      final msg = (auth.error ?? 'Error al actualizar el perfil')
-          .replaceAll('Exception: ', '');
+      final msg = auth.error ?? 'Error al actualizar el perfil';
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(msg), backgroundColor: Colors.red),
       );
     }
   }
 
-  Widget _field({
+  // ── Widget de campo ────────────────────────────────
+  Widget _campo({
     required String label,
     required TextEditingController controller,
     required IconData icon,
-    bool required = false,
-    bool isPassword = false,
+    bool obligatorio = false,
+    bool esPassword  = false,
     TextInputType keyboardType = TextInputType.text,
     String? Function(String?)? validator,
   }) {
@@ -123,20 +122,21 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       child: TextFormField(
         controller: controller,
         keyboardType: keyboardType,
-        obscureText: isPassword && !_showPassword,
-        validator: validator ?? (v) {
-          if (required && (v == null || v.trim().isEmpty)) {
-            return 'Este campo es obligatorio';
-          }
-          return null;
-        },
+        obscureText: esPassword && !_showPasswords,
+        validator: validator ??
+            (v) {
+              if (obligatorio && (v == null || v.trim().isEmpty)) {
+                return 'Este campo es obligatorio';
+              }
+              return null;
+            },
         decoration: InputDecoration(
           labelText: label,
           prefixIcon: Icon(icon),
-          suffixIcon: isPassword
+          suffixIcon: esPassword
               ? IconButton(
-                  icon: Icon(_showPassword ? Icons.visibility_off : Icons.visibility),
-                  onPressed: () => setState(() => _showPassword = !_showPassword),
+                  icon: Icon(_showPasswords ? Icons.visibility_off : Icons.visibility),
+                  onPressed: () => setState(() => _showPasswords = !_showPasswords),
                 )
               : null,
           filled: true,
@@ -158,14 +158,15 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     );
   }
 
-  Widget _sectionTitle(String text) => Padding(
-        padding: const EdgeInsets.only(bottom: 12, top: 4),
+  Widget _seccion(String titulo) => Padding(
+        padding: const EdgeInsets.only(top: 6, bottom: 10),
         child: Text(
-          text,
+          titulo,
           style: const TextStyle(
-            fontSize: 15,
+            fontSize: 14,
             fontWeight: FontWeight.bold,
             color: Colors.blue,
+            letterSpacing: 0.3,
           ),
         ),
       );
@@ -191,28 +192,26 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     padding: const EdgeInsets.all(4),
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      gradient: LinearGradient(
-                        colors: [Colors.blue, Colors.blue.shade200],
-                      ),
+                      gradient: LinearGradient(colors: [Colors.blue, Colors.blue.shade200]),
                     ),
                     child: const CircleAvatar(
-                      radius: 48,
+                      radius: 46,
                       backgroundColor: Colors.white,
-                      child: Icon(Icons.person, size: 48, color: Colors.blue),
+                      child: Icon(Icons.person, size: 46, color: Colors.blue),
                     ),
                   ),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 22),
 
-                  // Tarjeta principal
+                  // Tarjeta del formulario
                   Container(
-                    padding: const EdgeInsets.all(20),
+                    padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(20),
                       boxShadow: [
                         BoxShadow(
                           color: Colors.grey.withOpacity(0.15),
-                          blurRadius: 10,
+                          blurRadius: 12,
                           offset: const Offset(0, 4),
                         ),
                       ],
@@ -222,37 +221,38 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // ── Nombres ──────────────────────────
-                          _sectionTitle('Nombres'),
-                          _field(
+
+                          // ── NOMBRES ─────────────────────────────────────
+                          _seccion('Nombres'),
+                          _campo(
                             label: 'Primer nombre *',
                             controller: _firstNameCtrl,
                             icon: Icons.person,
-                            required: true,
+                            obligatorio: true,
                           ),
-                          _field(
+                          _campo(
                             label: 'Segundo nombre',
                             controller: _secondNameCtrl,
                             icon: Icons.person_outline,
                           ),
 
-                          // ── Apellidos ─────────────────────────
-                          _sectionTitle('Apellidos'),
-                          _field(
+                          // ── APELLIDOS ────────────────────────────────────
+                          _seccion('Apellidos'),
+                          _campo(
                             label: 'Primer apellido *',
                             controller: _firstLastNameCtrl,
                             icon: Icons.badge,
-                            required: true,
+                            obligatorio: true,
                           ),
-                          _field(
+                          _campo(
                             label: 'Segundo apellido',
                             controller: _secondLastNameCtrl,
                             icon: Icons.badge_outlined,
                           ),
 
-                          // ── Contacto ──────────────────────────
-                          _sectionTitle('Contacto'),
-                          _field(
+                          // ── CONTACTO ─────────────────────────────────────
+                          _seccion('Contacto'),
+                          _campo(
                             label: 'Correo electrónico *',
                             controller: _emailCtrl,
                             icon: Icons.email,
@@ -263,55 +263,58 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                               return null;
                             },
                           ),
-                          _field(
+                          _campo(
                             label: 'Teléfono',
                             controller: _phoneNumberCtrl,
                             icon: Icons.phone,
                             keyboardType: TextInputType.phone,
                           ),
-                          _field(
+                          _campo(
                             label: 'Dirección',
                             controller: _addressCtrl,
                             icon: Icons.location_on,
                           ),
 
-                          // ── Contraseña ────────────────────────
+                          // ── CAMBIO DE CONTRASEÑA ─────────────────────────
                           const Divider(height: 28),
                           Row(
                             children: [
                               const Icon(Icons.lock, color: Colors.blue, size: 18),
                               const SizedBox(width: 8),
-                              const Text(
-                                'Cambiar contraseña',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.blue,
-                                  fontSize: 15,
+                              const Expanded(
+                                child: Text(
+                                  'Cambiar contraseña',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.blue,
+                                    fontSize: 14,
+                                  ),
                                 ),
                               ),
-                              const Spacer(),
                               Switch(
                                 value: _changePassword,
                                 activeThumbColor: Colors.blue,
-                                onChanged: (v) => setState(() {
-                                  _changePassword = v;
-                                  if (!v) {
-                                    _currentPasswordCtrl.clear();
-                                    _newPasswordCtrl.clear();
-                                    _confirmPasswordCtrl.clear();
-                                  }
-                                }),
+                                onChanged: (v) {
+                                  setState(() {
+                                    _changePassword = v;
+                                    if (!v) {
+                                      _currentPasswordCtrl.clear();
+                                      _newPasswordCtrl.clear();
+                                      _confirmPasswordCtrl.clear();
+                                    }
+                                  });
+                                },
                               ),
                             ],
                           ),
 
                           if (_changePassword) ...[
-                            const SizedBox(height: 10),
-                            _field(
+                            const SizedBox(height: 6),
+                            _campo(
                               label: 'Contraseña actual',
                               controller: _currentPasswordCtrl,
                               icon: Icons.lock_outline,
-                              isPassword: true,
+                              esPassword: true,
                               validator: (v) {
                                 if (_changePassword && (v == null || v.isEmpty)) {
                                   return 'Ingresa tu contraseña actual';
@@ -319,26 +322,24 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                 return null;
                               },
                             ),
-                            _field(
+                            _campo(
                               label: 'Nueva contraseña',
                               controller: _newPasswordCtrl,
                               icon: Icons.lock,
-                              isPassword: true,
+                              esPassword: true,
                               validator: (v) {
-                                if (_changePassword && (v == null || v.isEmpty)) {
-                                  return 'Ingresa la nueva contraseña';
-                                }
-                                if (_changePassword && v!.length < 6) {
-                                  return 'Mínimo 6 caracteres';
+                                if (_changePassword) {
+                                  if (v == null || v.isEmpty) return 'Ingresa la nueva contraseña';
+                                  if (v.length < 6) return 'Mínimo 6 caracteres';
                                 }
                                 return null;
                               },
                             ),
-                            _field(
+                            _campo(
                               label: 'Confirmar nueva contraseña',
                               controller: _confirmPasswordCtrl,
                               icon: Icons.lock,
-                              isPassword: true,
+                              esPassword: true,
                               validator: (v) {
                                 if (_changePassword && v != _newPasswordCtrl.text) {
                                   return 'Las contraseñas no coinciden';
@@ -352,13 +353,13 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     ),
                   ),
 
-                  const SizedBox(height: 28),
+                  const SizedBox(height: 26),
 
                   // Botón guardar
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton.icon(
-                      onPressed: _saveChanges,
+                      onPressed: _guardarCambios,
                       icon: const Icon(Icons.save),
                       label: const Text(
                         'Guardar cambios',
