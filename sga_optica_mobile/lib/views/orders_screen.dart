@@ -455,8 +455,8 @@ class _OrdersScreenState extends State<OrdersScreen> {
           children: [
             Container(
               padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: const Color(0xFFE3F0FB),
+              decoration: const BoxDecoration(
+                color: Color(0xFFE3F0FB),
                 shape: BoxShape.circle,
               ),
               child: const Icon(
@@ -534,8 +534,8 @@ class _OrdersScreenState extends State<OrdersScreen> {
           children: [
             Container(
               padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: const Color(0xFFE3F0FB),
+              decoration: const BoxDecoration(
+                color: Color(0xFFE3F0FB),
                 shape: BoxShape.circle,
               ),
               child: const Icon(

@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../models/user_model.dart';
-import '../models/product_model.dart'; // MODELO DE LA SECCION PRODUCTOS
+import '../models/product_model.dart';
 import '../utils/constants.dart';
 
 class ApiService {
@@ -77,7 +77,6 @@ class ApiService {
     }
   }
 
-  // Solicitar código de recuperación
   Future<Map<String, dynamic>> requestPasswordReset(String email) async {
     try {
       final response = await http
@@ -91,11 +90,6 @@ class ApiService {
           )
           .timeout(Constants.connectionTimeout);
 
-      print('=== REQUEST RESET CODE ===');
-      print('URL: $baseUrl${Constants.requestResetEndpoint}');
-      print('Response status: ${response.statusCode}');
-      print('Response body: ${response.body}');
-
       if (response.statusCode == 200) {
         return jsonDecode(response.body);
       } else {
@@ -108,9 +102,7 @@ class ApiService {
     }
   }
 
-// Verificar código de recuperación
-  Future<Map<String, dynamic>> verifyResetCode(
-      String email, String code) async {
+  Future<Map<String, dynamic>> verifyResetCode(String email, String code) async {
     try {
       final response = await http
           .post(
@@ -119,17 +111,9 @@ class ApiService {
               'Content-Type': 'application/json',
               'Accept': 'application/json',
             },
-            body: jsonEncode({
-              'correo': email,
-              'code': code,
-            }),
+            body: jsonEncode({'correo': email, 'code': code}),
           )
           .timeout(Constants.connectionTimeout);
-
-      print('=== VERIFY RESET CODE ===');
-      print('URL: $baseUrl${Constants.verifyCodeEndpoint}');
-      print('Response status: ${response.statusCode}');
-      print('Response body: ${response.body}');
 
       if (response.statusCode == 200) {
         return jsonDecode(response.body);
@@ -143,7 +127,6 @@ class ApiService {
     }
   }
 
-// Restablecer contraseña
   Future<Map<String, dynamic>> resetPassword(String email, String code,
       String newPassword, String confirmPassword) async {
     try {
@@ -163,17 +146,11 @@ class ApiService {
           )
           .timeout(Constants.connectionTimeout);
 
-      print('=== RESET PASSWORD ===');
-      print('URL: $baseUrl${Constants.resetPasswordEndpoint}');
-      print('Response status: ${response.statusCode}');
-      print('Response body: ${response.body}');
-
       if (response.statusCode == 200) {
         return jsonDecode(response.body);
       } else {
         final error = jsonDecode(response.body);
-        throw Exception(
-            error['message'] ?? 'Error al restablecer la contraseña');
+        throw Exception(error['message'] ?? 'Error al restablecer la contraseña');
       }
     } catch (e) {
       print('Reset password error: $e');
@@ -181,9 +158,8 @@ class ApiService {
     }
   }
 
-  // ========== MÉTODOS PARA PRODUCTOS ==========
+  // ========== PRODUCTOS ==========
 
-  // Obtener productos paginados
   Future<ProductsPaginatedResponse> getProducts({int page = 1}) async {
     try {
       final response = await http.get(
@@ -193,10 +169,6 @@ class ApiService {
           'Accept': 'application/json',
         },
       ).timeout(Constants.connectionTimeout);
-
-      print('=== GET PRODUCTS ===');
-      print('URL: $baseUrl${Constants.productsEndpoint}?page=$page');
-      print('Response status: ${response.statusCode}');
 
       if (response.statusCode == 200) {
         final Map<String, dynamic> data = jsonDecode(response.body);
@@ -210,7 +182,6 @@ class ApiService {
     }
   }
 
-  // Obtener un producto por ID
   Future<Product> getProductById(int id) async {
     try {
       final response = await http.get(
@@ -221,10 +192,6 @@ class ApiService {
         },
       ).timeout(Constants.connectionTimeout);
 
-      print('=== GET PRODUCT BY ID ===');
-      print('URL: $baseUrl${Constants.productsEndpoint}/$id');
-      print('Response status: ${response.statusCode}');
-
       if (response.statusCode == 200) {
         return Product.fromJson(jsonDecode(response.body));
       } else {
@@ -233,6 +200,46 @@ class ApiService {
     } catch (e) {
       print('Get product by id error: $e');
       throw Exception('Error de conexión: $e');
+    }
+  }
+
+  // ========== PERFIL DEL CLIENTE ==========
+
+  /// PUT /api/v1/customer/profile/me
+  /// Solo requiere token — NO requiere ser admin.
+  /// Actualiza Customer + UserEntity + (si viene newPassword) User.
+  Future<Map<String, dynamic>> updateCustomerProfile(
+      String token, Map<String, dynamic> data) async {
+    try {
+      print('=== UPDATE CUSTOMER PROFILE ===');
+      print('URL: $baseUrl/customer/profile/me');
+      print('Payload: $data');
+
+      final response = await http
+          .put(
+            Uri.parse('$baseUrl/customer/profile/me'),
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+              'Authorization': 'Bearer $token',
+            },
+            body: jsonEncode(data),
+          )
+          .timeout(Constants.connectionTimeout);
+
+      print('Response status: ${response.statusCode}');
+      print('Response body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      } else {
+        final error = jsonDecode(response.body);
+        throw Exception(error['message'] ?? 'Error al actualizar perfil');
+      }
+    } catch (e) {
+      print('Update customer profile error: $e');
+      // Re-lanzar sin envolver en otra Exception para no duplicar el prefijo
+      rethrow;
     }
   }
 }

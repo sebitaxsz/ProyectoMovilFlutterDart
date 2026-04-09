@@ -11,7 +11,7 @@ const Color _kPrimary     = Color(0xFF0964AF);
 const Color _kPrimaryDark = Color(0xFF054A82);
 
 class MainScreen extends StatefulWidget {
-  const MainScreen({Key? key}) : super(key: key);
+  const MainScreen({super.key});
 
   @override
   State<MainScreen> createState() => MainScreenState();

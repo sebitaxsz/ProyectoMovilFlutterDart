@@ -607,7 +607,7 @@ class _CartScreenState extends State<CartScreen> {
                               ? const Text('No disponible',
                                   style: TextStyle(color: _kTextGrey))
                               : DropdownButtonFormField<int>(
-                                  value: _selectedPaymentTypeId,
+                                  initialValue: _selectedPaymentTypeId,
                                   decoration: InputDecoration(
                                     border: OutlineInputBorder(
                                       borderRadius:
