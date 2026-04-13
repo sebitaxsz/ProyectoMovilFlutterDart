@@ -1,3 +1,4 @@
+// lib/services/api_service.dart
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../models/user_model.dart';
@@ -6,12 +7,48 @@ import '../utils/constants.dart';
 
 class ApiService {
   final String baseUrl = Constants.baseUrl;
+  
+  // SOLO estas rutas son públicas (NO requieren token)
+  final List<String> _publicRoutes = [
+    '/auth/login',
+    '/auth/register',
+    '/password/request-reset',
+    '/password/verify-code',
+    '/password/reset',
+  ];
 
+  // Método para verificar si una ruta es pública
+  bool _isPublicRoute(String endpoint) {
+    return _publicRoutes.any((route) => endpoint.contains(route));
+  }
+
+  // Método para obtener headers (con o sin token según la ruta)
+  Future<Map<String, String>> _getHeaders(String endpoint, {String? token}) async {
+    final headers = {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+    };
+    
+    // SOLO agregar token si:
+    // 1. La ruta NO es pública
+    // 2. Hay token disponible
+    // 3. El token no está vacío
+    if (!_isPublicRoute(endpoint) && token != null && token.isNotEmpty) {
+      headers['Authorization'] = 'Bearer $token';
+    }
+    
+    return headers;
+  }
+
+  // ─── LOGIN (público) ──────────────────────────────────────────────────────
   Future<User> login(String username, String password) async {
     try {
+      final endpoint = Constants.loginEndpoint;
+      final headers = await _getHeaders(endpoint);
+      
       final response = await http.post(
-        Uri.parse('$baseUrl${Constants.loginEndpoint}'),
-        headers: {'Content-Type': 'application/json', 'Accept': 'application/json'},
+        Uri.parse('$baseUrl$endpoint'),
+        headers: headers,
         body: jsonEncode({'user_user': username, 'user_password': password}),
       );
 
@@ -21,7 +58,9 @@ class ApiService {
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body) as Map<String, dynamic>;
-        if (data['token'] != null && data['user'] != null) return User.fromJson(data);
+        if (data['token'] != null && data['user'] != null) {
+          return User.fromJson(data);
+        }
         throw Exception('Formato de respuesta inválido');
       } else {
         final error = jsonDecode(response.body) as Map<String, dynamic>;
@@ -33,18 +72,24 @@ class ApiService {
     }
   }
 
+  // ─── REGISTER (público) ───────────────────────────────────────────────────
   Future<Map<String, dynamic>> register(Map<String, dynamic> request) async {
     try {
+      final endpoint = Constants.registerEndpoint;
+      final headers = await _getHeaders(endpoint);
+      
       final response = await http.post(
-        Uri.parse('$baseUrl${Constants.registerEndpoint}'),
-        headers: {'Content-Type': 'application/json', 'Accept': 'application/json'},
+        Uri.parse('$baseUrl$endpoint'),
+        headers: headers,
         body: jsonEncode(request),
       );
 
       print('=== REGISTER === Status: ${response.statusCode}');
       print('Body: ${response.body}');
 
-      if (response.statusCode == 201) return jsonDecode(response.body);
+      if (response.statusCode == 201) {
+        return jsonDecode(response.body);
+      }
       final error = jsonDecode(response.body) as Map<String, dynamic>;
       throw Exception(error['message'] ?? 'Error en el registro');
     } catch (e) {
@@ -53,38 +98,72 @@ class ApiService {
     }
   }
 
+  // ─── SOLICITAR RECUPERACIÓN DE CONTRASEÑA (público) ───────────────────────
   Future<Map<String, dynamic>> requestPasswordReset(String email) async {
+    final endpoint = Constants.requestResetEndpoint;
+    final headers = await _getHeaders(endpoint);  // No enviará token
+    
+    print('=== REQUEST PASSWORD RESET ===');
+    print('URL: $baseUrl$endpoint');
+    print('Headers: $headers');
+    
     final response = await http
         .post(
-          Uri.parse('$baseUrl${Constants.requestResetEndpoint}'),
-          headers: {'Content-Type': 'application/json', 'Accept': 'application/json'},
+          Uri.parse('$baseUrl$endpoint'),
+          headers: headers,
           body: jsonEncode({'correo': email}),
         )
         .timeout(Constants.connectionTimeout);
-    if (response.statusCode == 200) return jsonDecode(response.body);
+        
+    print('Response status: ${response.statusCode}');
+    print('Response body: ${response.body}');
+        
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    }
     final error = jsonDecode(response.body) as Map<String, dynamic>;
     throw Exception(error['message'] ?? 'Error al solicitar el código');
   }
 
+  // ─── VERIFICAR CÓDIGO (público) ──────────────────────────────────────────
   Future<Map<String, dynamic>> verifyResetCode(String email, String code) async {
+    final endpoint = Constants.verifyCodeEndpoint;
+    final headers = await _getHeaders(endpoint);  // No enviará token
+    
+    print('=== VERIFY RESET CODE ===');
+    print('URL: $baseUrl$endpoint');
+    
     final response = await http
         .post(
-          Uri.parse('$baseUrl${Constants.verifyCodeEndpoint}'),
-          headers: {'Content-Type': 'application/json', 'Accept': 'application/json'},
+          Uri.parse('$baseUrl$endpoint'),
+          headers: headers,
           body: jsonEncode({'correo': email, 'code': code}),
         )
         .timeout(Constants.connectionTimeout);
-    if (response.statusCode == 200) return jsonDecode(response.body);
+        
+    print('Response status: ${response.statusCode}');
+    print('Response body: ${response.body}');
+        
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    }
     final error = jsonDecode(response.body) as Map<String, dynamic>;
     throw Exception(error['message'] ?? 'Código incorrecto');
   }
 
+  // ─── RESTABLECER CONTRASEÑA (público) ─────────────────────────────────────
   Future<Map<String, dynamic>> resetPassword(
       String email, String code, String newPassword, String confirmPassword) async {
+    final endpoint = Constants.resetPasswordEndpoint;
+    final headers = await _getHeaders(endpoint);  // No enviará token
+    
+    print('=== RESET PASSWORD ===');
+    print('URL: $baseUrl$endpoint');
+    
     final response = await http
         .post(
-          Uri.parse('$baseUrl${Constants.resetPasswordEndpoint}'),
-          headers: {'Content-Type': 'application/json', 'Accept': 'application/json'},
+          Uri.parse('$baseUrl$endpoint'),
+          headers: headers,
           body: jsonEncode({
             'correo': email,
             'code': code,
@@ -93,66 +172,66 @@ class ApiService {
           }),
         )
         .timeout(Constants.connectionTimeout);
-    if (response.statusCode == 200) return jsonDecode(response.body);
+        
+    print('Response status: ${response.statusCode}');
+    print('Response body: ${response.body}');
+        
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    }
     final error = jsonDecode(response.body) as Map<String, dynamic>;
     throw Exception(error['message'] ?? 'Error al restablecer la contraseña');
   }
 
-  // ─── PRODUCTOS ─────────────────────────────────────────────────────────────
-
-  Future<ProductsPaginatedResponse> getProducts({int page = 1}) async {
+  // ─── PRODUCTOS (requieren token) ──────────────────────────────────────────
+  Future<ProductsPaginatedResponse> getProducts({int page = 1, String? token}) async {
+    final endpoint = Constants.productsEndpoint;
+    final headers = await _getHeaders(endpoint, token: token);
+    
     final response = await http
         .get(
-          Uri.parse('$baseUrl${Constants.productsEndpoint}?page=$page'),
-          headers: {'Content-Type': 'application/json', 'Accept': 'application/json'},
+          Uri.parse('$baseUrl$endpoint?page=$page'),
+          headers: headers,
         )
         .timeout(Constants.connectionTimeout);
+        
     if (response.statusCode == 200) {
       return ProductsPaginatedResponse.fromJson(jsonDecode(response.body));
     }
     throw Exception('Error al cargar productos: ${response.statusCode}');
   }
 
-  Future<Product> getProductById(int id) async {
+  Future<Product> getProductById(int id, {String? token}) async {
+    final endpoint = '${Constants.productsEndpoint}/$id';
+    final headers = await _getHeaders(endpoint, token: token);
+    
     final response = await http
         .get(
-          Uri.parse('$baseUrl${Constants.productsEndpoint}/$id'),
-          headers: {'Content-Type': 'application/json', 'Accept': 'application/json'},
+          Uri.parse('$baseUrl$endpoint'),
+          headers: headers,
         )
         .timeout(Constants.connectionTimeout);
-    if (response.statusCode == 200) return Product.fromJson(jsonDecode(response.body));
+        
+    if (response.statusCode == 200) {
+      return Product.fromJson(jsonDecode(response.body));
+    }
     throw Exception('Error al cargar producto: ${response.statusCode}');
   }
 
-  // ─── PERFIL DEL CLIENTE ────────────────────────────────────────────────────
-  //
-  // Llama a: PUT /api/v1/customer/profile
-  //
-  // Esta ruta en la API tiene SOLO verifyToken — NO isAdmin ni isAdminOrEmployee.
-  // El backend identifica al cliente por el user_id dentro del JWT.
-  //
-  // Campos aceptados por el backend:
-  //   firstName, secondName, firstLastName, secondLastName,
-  //   phoneNumber, email, address,
-  //   currentPassword, newPassword, confirmNewPassword (opcionales)
-  // ──────────────────────────────────────────────────────────────────────────
+  // ─── PERFIL DEL CLIENTE (requiere token) ──────────────────────────────────
   Future<Map<String, dynamic>> updateCustomerProfile(
       String token, Map<String, dynamic> data) async {
-    // URL que coincide EXACTAMENTE con la ruta de la API
-    final url = '$baseUrl/customer/profile';
+    final endpoint = '/customer/profile';
+    final headers = await _getHeaders(endpoint, token: token);  // Enviará token
 
     print('=== UPDATE CUSTOMER PROFILE ===');
-    print('URL: $url');
+    print('URL: $baseUrl$endpoint');
     print('Payload: $data');
 
     final response = await http
         .put(
-          Uri.parse(url),
-          headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
-            'Authorization': 'Bearer $token',
-          },
+          Uri.parse('$baseUrl$endpoint'),
+          headers: headers,
           body: jsonEncode(data),
         )
         .timeout(Constants.connectionTimeout);
@@ -160,9 +239,10 @@ class ApiService {
     print('Response status: ${response.statusCode}');
     print('Response body: ${response.body}');
 
-    if (response.statusCode == 200) return jsonDecode(response.body);
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    }
 
-    // Extraer mensaje de error del servidor para mostrarlo al usuario
     try {
       final error = jsonDecode(response.body) as Map<String, dynamic>;
       throw Exception(error['message'] ?? 'Error al actualizar perfil');
